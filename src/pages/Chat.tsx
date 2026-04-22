@@ -41,6 +41,7 @@ export default function Chat() {
   const [screenshotWarn, setScrnWarn]   = useState(false);
   const [unreadCount, setUnreadCount]   = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const soundRef = useRef(true); // ref so sound toggle never re-runs the channel effect
   const [openReaction, setOpenReaction] = useState<string | null>(null);
   const [copiedId, setCopiedId]         = useState<string | null>(null);
   const [expiresAt, setExpiresAt]       = useState<string | null>(null);
@@ -137,7 +138,7 @@ export default function Chat() {
       try {
         const text = decryptMessage(payload.cipher, payload.nonce, key);
         setMessages(p => [...p, { id: crypto.randomUUID(), type: 'other', sender: payload.sender, text, time: ts(), reactions: {} }]);
-        if (soundEnabled) playMessageReceived();
+        if (soundRef.current) playMessageReceived();
         if (isHidden.current) setUnreadCount(c => c + 1);
       } catch {
         setMessages(p => [...p, { id: crypto.randomUUID(), type: 'other', sender: payload.sender, text: '[decryption failed]', time: ts(), reactions: {} }]);
@@ -185,6 +186,20 @@ export default function Chat() {
     ch.on('broadcast', { event: 'lock_change' }, ({ payload }) => {
       setIsLocked(payload.locked);
       sys(payload.locked ? '🔒 Room locked by creator' : '🔓 Room unlocked by creator');
+    });
+
+    // ── KICKED ──
+    ch.on('broadcast', { event: 'kicked' }, ({ payload }) => {
+      if (payload.target === userId) {
+        sys('You were removed from the room by the creator');
+        setTimeout(async () => {
+          await supabase.rpc('leave_room', { p_room_id: roomId, p_user_id: userId });
+          supabase.removeChannel(ch);
+          sessionStorage.removeItem('roomId');
+          sessionStorage.removeItem('roomPassword');
+          navigate('/lobby');
+        }, 1500);
+      }
     });
 
     // ── PANIC ──
@@ -274,7 +289,7 @@ export default function Chat() {
       supabase.rpc('leave_room', { p_room_id: roomId, p_user_id: userId });
       supabase.removeChannel(ch);
     };
-  }, [key, roomId, userId, soundEnabled, beaconLeave, navigate]);
+  }, [key, roomId, userId, beaconLeave, navigate]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, typingUsers]);
 
@@ -296,9 +311,9 @@ export default function Chat() {
     channelRef.current.send({ type: 'broadcast', event: 'stop_typing', payload: { sender: userId } });
     const { nonce, cipher } = encryptMessage(text, key);
     setMessages(p => [...p, { id: crypto.randomUUID(), type: 'own', sender: userId, text, time: ts(), reactions: {} }]);
-    if (soundEnabled) playMessageSent();
+    if (soundRef.current) playMessageSent();
     channelRef.current.send({ type: 'broadcast', event: 'msg', payload: { sender: userId, nonce, cipher } });
-  }, [key, input, userId, soundEnabled]);
+  }, [key, input, userId]);
 
   const toggleReaction = (msgId: string, emoji: string) => {
     setOpenReaction(null);
@@ -346,6 +361,9 @@ export default function Chat() {
   };
 
   const forceRemove = async (uid: string) => {
+    // Broadcast kick event — the kicked user's client listens for this and leaves
+    channelRef.current?.send({ type: 'broadcast', event: 'kicked', payload: { target: uid } });
+    // Also clean up the DB in case their client doesn't respond
     await supabase.rpc('leave_room', { p_room_id: roomId, p_user_id: uid });
   };
 
@@ -431,7 +449,7 @@ export default function Chat() {
             <button
               className="btn-ghost"
               style={{ fontSize: 11, padding: '6px 9px' }}
-              onClick={() => setSoundEnabled(s => !s)}
+              onClick={() => { setSoundEnabled(s => { soundRef.current = !s; return !s; }); }}
               title={soundEnabled ? 'Mute sounds' : 'Enable sounds'}
             >{soundEnabled ? '🔊' : '🔇'}</button>
             <button className="btn-ghost" style={{ fontSize: 11, padding: '6px 9px' }} onClick={copyShareLink} title="Copy share link">
