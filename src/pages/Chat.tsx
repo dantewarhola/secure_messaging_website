@@ -148,15 +148,17 @@ export default function Chat() {
     ch.on('broadcast', { event: 'reaction' }, ({ payload }) => {
       setMessages(p => p.map(m => {
         if (m.id !== payload.msgId) return m;
-        const existing = m.reactions[payload.emoji] || [];
-        const already = existing.includes(payload.sender);
+        const already = (m.reactions[payload.emoji] || []).includes(payload.sender);
+        // Remove sender from all emojis, then add to selected (unless toggling off)
+        const cleared: Record<string, string[]> = {};
+        for (const [e, users] of Object.entries(m.reactions)) {
+          cleared[e] = users.filter((u: string) => u !== payload.sender);
+        }
         return {
           ...m,
           reactions: {
-            ...m.reactions,
-            [payload.emoji]: already
-              ? existing.filter(u => u !== payload.sender)
-              : [...existing, payload.sender],
+            ...cleared,
+            [payload.emoji]: already ? cleared[payload.emoji] : [...(cleared[payload.emoji] || []), payload.sender],
           }
         };
       }));
@@ -319,13 +321,17 @@ export default function Chat() {
     setOpenReaction(null);
     setMessages(p => p.map(m => {
       if (m.id !== msgId) return m;
-      const existing = m.reactions[emoji] || [];
-      const already = existing.includes(userId);
+      const already = (m.reactions[emoji] || []).includes(userId);
+      // Remove user from ALL emojis first, then add to selected (unless toggling off)
+      const cleared: Record<string, string[]> = {};
+      for (const [e, users] of Object.entries(m.reactions)) {
+        cleared[e] = users.filter(u => u !== userId);
+      }
       return {
         ...m,
         reactions: {
-          ...m.reactions,
-          [emoji]: already ? existing.filter(u => u !== userId) : [...existing, userId],
+          ...cleared,
+          [emoji]: already ? cleared[emoji] : [...(cleared[emoji] || []), userId],
         }
       };
     }));
