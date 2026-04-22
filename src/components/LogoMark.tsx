@@ -1,39 +1,12 @@
-export default function LogoMark({ size = 32 }: { size?: number }) {
+export default function Logo({ size = 28 }: { size?: number }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 32 32"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="logo-mark"
-    >
-      {/* Outer hexagon ring */}
-      <path
-        d="M16 2L28 8.5V23.5L16 30L4 23.5V8.5L16 2Z"
-        fill="none"
-        stroke="#6366f1"
-        strokeWidth="1.5"
-      />
-      {/* Inner hexagon */}
-      <path
-        d="M16 7L24 11.5V20.5L16 25L8 20.5V11.5L16 7Z"
-        fill="rgba(99,102,241,0.12)"
-        stroke="#818cf8"
-        strokeWidth="1"
-      />
-      {/* Lock shackle */}
-      <path
-        d="M13 15V13.5C13 11.84 14.34 10.5 16 10.5C17.66 10.5 19 11.84 19 13.5V15"
-        stroke="#c7d2fe"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      {/* Lock body */}
-      <rect x="12" y="15" width="8" height="6" rx="1.5" fill="#6366f1" />
-      {/* Keyhole */}
-      <circle cx="16" cy="17.5" r="1" fill="#c7d2fe" />
-      <rect x="15.5" y="18" width="1" height="1.5" rx="0.5" fill="#c7d2fe" />
+    <svg width={size} height={size} viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="14,1 25,7.5 25,20.5 14,27 3,20.5 3,7.5" fill="none" stroke="#38bdf8" strokeWidth="1"/>
+      <polygon points="14,5 22,9.5 22,18.5 14,23 6,18.5 6,9.5" fill="rgba(56,189,248,0.06)" stroke="rgba(56,189,248,0.3)" strokeWidth="0.5"/>
+      <path d="M11 13.5V12C11 10.34 12.34 9 14 9C15.66 9 17 10.34 17 12V13.5" stroke="#38bdf8" strokeWidth="1.2" strokeLinecap="round"/>
+      <rect x="10.5" y="13.5" width="7" height="5" rx="1" fill="#38bdf8" opacity="0.9"/>
+      <circle cx="14" cy="15.5" r="0.9" fill="#04060a"/>
+      <rect x="13.5" y="16.2" width="1" height="1.3" rx="0.5" fill="#04060a"/>
     </svg>
   );
 }

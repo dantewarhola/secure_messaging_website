@@ -17,26 +17,21 @@ function ts() {
 }
 
 export default function Chat() {
-  const navigate = useNavigate();
-  const roomId   = sessionStorage.getItem('roomId') || '';
-  const password = sessionStorage.getItem('roomPassword') || '';
-  const userId   = localStorage.getItem('userId') || 'anonymous';
+  const navigate   = useNavigate();
+  const roomId     = sessionStorage.getItem('roomId') || '';
+  const password   = sessionStorage.getItem('roomPassword') || '';
+  const userId     = localStorage.getItem('userId') || 'anonymous';
 
-  const [messages, setMessages]     = useState<ChatMessage[]>([]);
-  const [input, setInput]           = useState('');
-  const [key, setKey]               = useState<Uint8Array | null>(null);
+  const [messages, setMessages]       = useState<ChatMessage[]>([]);
+  const [input, setInput]             = useState('');
+  const [key, setKey]                 = useState<Uint8Array | null>(null);
   const [memberCount, setMemberCount] = useState(1);
   const bottomRef  = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  useEffect(() => {
-    if (!roomId || !password) navigate('/');
-  }, [roomId, password, navigate]);
+  useEffect(() => { if (!roomId || !password) navigate('/'); }, [roomId, password, navigate]);
 
-  useEffect(() => {
-    if (!password) return;
-    deriveKeyFromPassword(password).then(setKey);
-  }, [password]);
+  useEffect(() => { if (password) deriveKeyFromPassword(password).then(setKey); }, [password]);
 
   useEffect(() => {
     if (!key || !roomId) return;
@@ -44,11 +39,9 @@ export default function Chat() {
     const addSys = (text: string) =>
       setMessages(prev => [...prev, { id: crypto.randomUUID(), type: 'sys', sender: 'sys', text, time: ts() }]);
 
-    addSys('🔒 End-to-end encrypted session started');
+    addSys('E2EE channel established · XSalsa20-Poly1305 active');
 
-    const channel = supabase.channel(`room:${roomId}`, {
-      config: { presence: { key: userId } }
-    });
+    const channel = supabase.channel(`room:${roomId}`, { config: { presence: { key: userId } } });
     channelRef.current = channel;
 
     channel.on('broadcast', { event: 'msg' }, ({ payload }) => {
@@ -57,21 +50,13 @@ export default function Chat() {
         const text = decryptMessage(payload.cipher, payload.nonce, key);
         setMessages(prev => [...prev, { id: crypto.randomUUID(), type: 'other', sender: payload.sender, text, time: ts() }]);
       } catch {
-        setMessages(prev => [...prev, { id: crypto.randomUUID(), type: 'other', sender: payload.sender, text: '[decryption failed]', time: ts() }]);
+        setMessages(prev => [...prev, { id: crypto.randomUUID(), type: 'other', sender: payload.sender, text: '[decryption failed — wrong password?]', time: ts() }]);
       }
     });
 
-    channel.on('presence', { event: 'sync' }, () => {
-      setMemberCount(Object.keys(channel.presenceState()).length);
-    });
-
-    channel.on('presence', { event: 'join' }, ({ key: k }) => {
-      if (k !== userId) addSys(`${k} joined`);
-    });
-
-    channel.on('presence', { event: 'leave' }, ({ key: k }) => {
-      addSys(`${k} left`);
-    });
+    channel.on('presence', { event: 'sync' }, () => setMemberCount(Object.keys(channel.presenceState()).length));
+    channel.on('presence', { event: 'join' }, ({ key: k }) => { if (k !== userId) addSys(`${k} joined the channel`); });
+    channel.on('presence', { event: 'leave' }, ({ key: k }) => addSys(`${k} disconnected`));
 
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
@@ -86,9 +71,7 @@ export default function Chat() {
     };
   }, [key, roomId, userId]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const handleSend = useCallback(() => {
     if (!key || !input.trim() || !channelRef.current) return;
@@ -101,69 +84,64 @@ export default function Chat() {
 
   const handleLeave = async () => {
     await supabase.rpc('decrement_member_count', { p_room_id: roomId });
-    if (channelRef.current) {
-      await supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    if (channelRef.current) { await supabase.removeChannel(channelRef.current); channelRef.current = null; }
     sessionStorage.removeItem('roomId');
     sessionStorage.removeItem('roomPassword');
     navigate('/lobby');
   };
 
   return (
-    <div className="chat">
-      <nav className="chat-nav">
-        <div className="chat-nav-l">
-          <div className="online-dot" />
-          <LogoMark size={24} />
-          <div>
-            <div className="chat-room">#{roomId}</div>
-            <div className="chat-meta">{memberCount} connected · you: {userId}</div>
-          </div>
-        </div>
-        <div className="chat-nav-r">
-          <span className="badge"><span className="status-dot" />E2EE</span>
-          <button className="btn-danger-sm" onClick={handleLeave}>Leave</button>
-        </div>
-      </nav>
+    <>
+      <div className="grid-bg" />
 
-      <div className="chat-messages">
-        {messages.length === 0 && (
-          <div style={{ color: 'var(--text2)', fontFamily: 'var(--mono)', fontSize: 12, textAlign: 'center', marginTop: 48 }}>
-            Waiting for messages · share the room ID and password with your contact
+      <div className="chat-layout">
+        <nav className="chat-nav">
+          <div className="chat-nav-left">
+            <div className="online-dot" />
+            <LogoMark size={22} />
+            <div>
+              <div className="chat-room-id">#{roomId}</div>
+              <div className="chat-room-sub">{memberCount} connected · {userId}</div>
+            </div>
           </div>
-        )}
-        {messages.map((m) => (
-          <div key={m.id} className={`msg ${m.type}`}>
-            {m.type !== 'sys' && (
-              <div className="msg-label">{m.type === 'own' ? 'you' : m.sender}</div>
-            )}
-            <div className="msg-bubble">{m.text}</div>
-            {m.type !== 'sys' && <div className="msg-time">{m.time}</div>}
+          <div className="chat-nav-right">
+            <span className="tag">E2EE · XSalsa20</span>
+            <button className="btn-danger" onClick={handleLeave}>Disconnect</button>
           </div>
-        ))}
-        <div ref={bottomRef} />
-      </div>
+        </nav>
 
-      <div className="chat-input-bar">
-        <input
-          placeholder={key ? 'Type a message…' : 'Deriving key…'}
-          value={input}
-          disabled={!key}
-          autoFocus
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-          }}
-        />
-        <button
-          className="btn-send"
-          onClick={handleSend}
-          disabled={!key || !input.trim()}
-        >
-          Send
-        </button>
+        <div className="chat-messages">
+          {messages.length === 0 && (
+            <div style={{ textAlign: 'center', marginTop: 60, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text2)', letterSpacing: '0.06em' }}>
+              No messages yet — share the room ID and password with your contact
+            </div>
+          )}
+          {messages.map((m) => (
+            <div key={m.id} className={`msg ${m.type}`}>
+              {m.type !== 'sys' && (
+                <div className="msg-sender">{m.type === 'own' ? userId : m.sender}</div>
+              )}
+              <div className="msg-bubble">{m.text}</div>
+              {m.type !== 'sys' && <div className="msg-time">{m.time}</div>}
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+
+        <div className="chat-input-area">
+          <input
+            placeholder={key ? 'Type a message…' : 'Deriving key…'}
+            value={input}
+            disabled={!key}
+            autoFocus
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+          />
+          <button className="btn-send" onClick={handleSend} disabled={!key || !input.trim()}>
+            Send
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
