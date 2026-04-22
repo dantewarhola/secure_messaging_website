@@ -6,11 +6,12 @@ import MatrixRain from '../components/MatrixRain';
 import Logo from '../components/LogoMark';
 
 export default function Create() {
-  const [roomId, setRoomId]     = useState('');
-  const [password, setPassword] = useState('');
-  const [capacity, setCapacity] = useState(2);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
+  const [roomId, setRoomId]       = useState('');
+  const [password, setPassword]   = useState('');
+  const [capacity, setCapacity]   = useState(2);
+  const [isPublic, setIsPublic]   = useState(true);
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState('');
   const navigate = useNavigate();
 
   const handle = async () => {
@@ -22,7 +23,12 @@ export default function Create() {
       if (ex) { setError('Room ID already taken.'); setLoading(false); return; }
 
       const hashed = await hashValue(pass);
-      const { error: err } = await supabase.from('rooms').insert([{ room_id: room, password: hashed, capacity }]);
+      const { error: err } = await supabase.from('rooms').insert([{
+        room_id: room,
+        password: hashed,
+        capacity,
+        is_public: isPublic,
+      }]);
       if (err) { setError(err.message); setLoading(false); return; }
 
       sessionStorage.setItem('roomId', room);
@@ -64,6 +70,49 @@ export default function Create() {
               <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))}>
                 {[2,3,4,5,6,8,10].map(n => <option key={n} value={n}>{n} users</option>)}
               </select>
+            </div>
+          </div>
+
+          <div className="field">
+            <label className="field-label">Visibility</label>
+            <div className="visibility-toggle">
+              <label className="vis-option">
+                <input
+                  type="radio"
+                  name="visibility"
+                  checked={isPublic}
+                  onChange={() => setIsPublic(true)}
+                />
+                <div className="vis-label">
+                  <div className="vis-label-title">
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                      <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2"/>
+                      <circle cx="6" cy="6" r="2" fill="currentColor"/>
+                    </svg>
+                    Public
+                  </div>
+                  <div className="vis-label-desc">Visible in Browse Rooms</div>
+                </div>
+              </label>
+
+              <label className="vis-option">
+                <input
+                  type="radio"
+                  name="visibility"
+                  checked={!isPublic}
+                  onChange={() => setIsPublic(false)}
+                />
+                <div className="vis-label">
+                  <div className="vis-label-title">
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                      <rect x="2" y="5" width="8" height="6" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+                      <path d="M4 5V3.5C4 2.12 4.9 1 6 1C7.1 1 8 2.12 8 3.5V5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                    </svg>
+                    Private
+                  </div>
+                  <div className="vis-label-desc">Join by Room ID only</div>
+                </div>
+              </label>
             </div>
           </div>
 
