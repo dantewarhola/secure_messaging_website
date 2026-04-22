@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import MatrixRain from '../components/MatrixRain';
 import Logo from '../components/LogoMark';
 
-interface Room { room_id: string; capacity: number; member_count: number; }
+interface Room { room_id: string; capacity: number; member_count: number; members: string[]; }
 
 export default function Lobby() {
   const [rooms, setRooms]   = useState<Room[]>([]);
@@ -13,7 +13,7 @@ export default function Lobby() {
 
   const fetch = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('rooms').select('room_id, capacity, member_count').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('rooms').select('room_id, capacity, member_count, members').order('created_at', { ascending: false });
     if (!error && data) setRooms(data);
     setLoading(false);
   };
@@ -72,6 +72,24 @@ export default function Lobby() {
                     </span>
                   </div>
                   <div className="room-meta">{r.member_count} / {r.capacity} connected</div>
+                  {r.members && r.members.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+                      {r.members.map((m) => (
+                        <span key={m} style={{
+                          fontFamily: 'var(--mono)',
+                          fontSize: 10,
+                          color: 'var(--green)',
+                          background: 'rgba(0,255,65,0.06)',
+                          border: '1px solid rgba(0,255,65,0.15)',
+                          borderRadius: 3,
+                          padding: '2px 7px',
+                          letterSpacing: '0.04em',
+                        }}>
+                          {m}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="fill-bar">
                     <div className="fill-bar-inner" style={{ width: `${(r.member_count / r.capacity) * 100}%` }} />
                   </div>
