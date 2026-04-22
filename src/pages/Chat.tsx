@@ -204,7 +204,7 @@ export default function Chat() {
             <div className="online-dot" />
             <Logo size={20} />
             <div>
-              <div className="chat-room-name">#{roomId}</div>
+              <div className="chat-room-name">{roomId}</div>
               <div className="chat-room-meta">
                 {members.length > 0
                   ? members.map((m, i) => (
