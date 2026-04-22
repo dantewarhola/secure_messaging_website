@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+// Import hashValue to hash the entered password before comparing with Supabase
+import { hashValue } from '../lib/crypto';
 
 export default function Join() {
   const { roomId: paramRoomId } = useParams<{ roomId?: string }>();
@@ -38,11 +40,18 @@ export default function Join() {
         return;
       }
 
-      if (room.password !== trimmedPass) {
+      // Hash what the user typed so we can compare it against the stored hash
+      const hashedPassword = await hashValue(trimmedPass);
+
+      if (room.password !== hashedPassword) {
         setError('Incorrect password.');
         setLoading(false);
         return;
       }
+
+      // Store the ORIGINAL password for encryption key derivation — not the hash
+      sessionStorage.setItem('roomId', trimmedRoom);
+      sessionStorage.setItem('roomPassword', trimmedPass);
 
       if (room.member_count >= room.capacity) {
         setError('Room is full (max 2 users).');

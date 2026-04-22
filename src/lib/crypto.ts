@@ -44,3 +44,17 @@ export function decryptMessage(
   if (!msg) throw new Error('Decryption failed');
   return encodeUTF8(msg);
 }
+
+
+/**
+ * Hashes a string using SHA-256 and returns it as a hex string.
+ * Used to store passwords in Supabase without revealing the plaintext.
+ * The original password is still used locally for message encryption.
+ */
+export async function hashValue(value: string): Promise<string> {
+  const enc = new TextEncoder();
+  const buffer = await crypto.subtle.digest('SHA-256', enc.encode(value));
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}

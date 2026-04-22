@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+// Import hashValue so we can hash the password before sending to Supabase
+import { hashValue } from '../lib/crypto';
 
 export default function Create() {
   const [roomId, setRoomId] = useState('');
@@ -32,10 +34,18 @@ export default function Create() {
         return;
       }
 
+      // Hash the password before storing — Supabase never sees the plaintext
+      const hashedPassword = await hashValue(trimmedPass);
+
       // Create room
       const { error: insertError } = await supabase
         .from('rooms')
-        .insert([{ room_id: trimmedRoom, password: trimmedPass, capacity }]);
+        .insert([{ room_id: trimmedRoom, password: hashedPassword, capacity }]);
+
+      // Store the ORIGINAL password in sessionStorage — needed to derive the
+      // encryption key for messages. This never leaves the browser.
+      sessionStorage.setItem('roomId', trimmedRoom);
+      sessionStorage.setItem('roomPassword', trimmedPass);
 
       if (insertError) {
         setError('Failed to create room: ' + insertError.message);
