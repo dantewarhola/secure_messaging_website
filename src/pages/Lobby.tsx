@@ -40,7 +40,7 @@ export default function Lobby() {
     <>
       <MatrixRain />
       <nav className="nav">
-        <div className="nav-brand"><Logo size={22} />CipherChat</div>
+        <div className="nav-brand"><Logo size={22} />PhantomChat</div>
         <div className="nav-right">
           <button className="btn-ghost" onClick={fetchRooms}>↻ Refresh</button>
           <button className="btn-new" onClick={() => navigate('/create')}>+ New Room</button>

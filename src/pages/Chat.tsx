@@ -78,7 +78,7 @@ export default function Chat() {
   // Tab title unread badge
   useEffect(() => {
     if (unreadCount > 0) {
-      document.title = `(${unreadCount}) CipherChat`;
+      document.title = `(${unreadCount}) PhantomChat`;
     } else {
       document.title = ORIGINAL_TITLE;
     }

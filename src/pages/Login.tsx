@@ -20,7 +20,7 @@ export default function Login() {
       <nav className="nav">
         <div className="nav-brand">
           <Logo size={22} />
-          CipherChat
+          PhantomChat
         </div>
         <div className="nav-right">
           <span className="nav-tag">E2EE · XSalsa20</span>
@@ -31,7 +31,7 @@ export default function Login() {
         <div className="auth-box">
           <div className="auth-header">
             <div className="auth-title">
-              Welcome to <span className="g">CipherChat</span>
+              Welcome to <span className="g">PhantomChat</span>
             </div>
             <div className="auth-desc">set a display name to get started</div>
           </div>

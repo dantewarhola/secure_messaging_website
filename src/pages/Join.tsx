@@ -49,7 +49,7 @@ export default function Join() {
     <>
       <MatrixRain />
       <nav className="nav">
-        <div className="nav-brand"><Logo size={22} />CipherChat</div>
+        <div className="nav-brand"><Logo size={22} />PhantomChat</div>
         <div className="nav-right">
           <button className="btn-ghost" onClick={() => navigate('/ask')}>← Back</button>
         </div>
